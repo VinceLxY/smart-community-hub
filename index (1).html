@@ -1,0 +1,680 @@
+<title>Smart Community Hub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky top bar with role switch; app column plus demo-story/live-log panel on desktop; bottom tab bar on phones. */
+:root{
+  --bg:#EDF2EE; --surface:#FFFFFF; --surface2:#E3EBE6; --ink:#12211C; --muted:#586A62; --line:#D2DCD6;
+  --brand:#0E6B57; --on-brand:#FFFFFF; --brand-soft:#D5EDE4;
+  --ok:#1B7F47; --ok-soft:#D8F0E1; --warn:#8F5A00; --warn-soft:#FBEBCB; --bad:#B8362F; --bad-soft:#F9DAD7; --info:#1F5FA8; --info-soft:#DCE8F7; --mute:#586A62; --mute-soft:#E3EBE6;
+  --f-display:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'Figtree',system-ui,-apple-system,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0D1613; --surface:#15221D; --surface2:#1C2D27; --ink:#E7F0EC; --muted:#93A89F; --line:#28403A;
+  --brand:#3FBF9F; --on-brand:#06201A; --brand-soft:#17382F;
+  --ok:#4CC27F; --ok-soft:#163626; --warn:#E3B24C; --warn-soft:#3A2D10; --bad:#F2766D; --bad-soft:#40201E; --info:#78AEEB; --info-soft:#18304D; --mute:#93A89F; --mute-soft:#1C2D27;
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0D1613; --surface:#15221D; --surface2:#1C2D27; --ink:#E7F0EC; --muted:#93A89F; --line:#28403A;
+  --brand:#3FBF9F; --on-brand:#06201A; --brand-soft:#17382F;
+  --ok:#4CC27F; --ok-soft:#163626; --warn:#E3B24C; --warn-soft:#3A2D10; --bad:#F2766D; --bad-soft:#40201E; --info:#78AEEB; --info-soft:#18304D; --mute:#93A89F; --mute-soft:#1C2D27;
+  color-scheme:dark; }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-block:0 96px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:22px;line-height:1.15} h3{font-size:16px}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+code,.mono{font-family:var(--f-mono);font-size:.92em;letter-spacing:.04em}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-block:12px 10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:34px;height:34px;border-radius:10px;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;flex:none}
+.brand b{font-family:var(--f-display);font-size:18px;display:block;line-height:1.1}
+.brand span{color:var(--muted);font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:flex;gap:4px;padding:4px;background:var(--surface2);border-radius:12px;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:1 0 auto;border:0;background:transparent;padding:8px 14px;border-radius:9px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0 / .12)}
+.who{color:var(--muted);font-size:12.5px}
+
+/* grid */
+.main{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;padding-block:18px}
+@media (min-width:1000px){ .main{grid-template-columns:minmax(0,1fr) 340px;align-items:start} #side{position:sticky;top:132px} #side-btn{display:none} }
+#side{display:none}
+@media (min-width:1000px){ #side{display:block} }
+#side.open{display:block;position:fixed;inset:0;z-index:40;overflow:auto;background:var(--bg);padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+#side .side-close{display:none}
+#side.open .side-close{display:inline-flex}
+@media (min-width:1000px){ #side.open{position:sticky;inset:auto;padding:0;overflow:visible;top:132px} #side.open .side-close{display:none} }
+
+/* nav */
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);display:flex;
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+#nav:empty{display:none}
+#nav button{flex:1;min-width:0;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:10px;color:var(--muted);font-size:11.5px;font-weight:600;cursor:pointer;position:relative}
+#nav button[aria-current="page"]{color:var(--brand)}
+#nav svg{width:22px;height:22px}
+.dot{position:absolute;top:2px;left:calc(50% + 6px);min-width:16px;height:16px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;display:grid;place-items:center;padding:0 4px}
+@media (min-width:700px){
+  body{padding-bottom:40px}
+  #nav{position:static;border:1px solid var(--line);border-radius:14px;padding:5px;gap:2px;margin-top:16px}
+  #nav button{flex-direction:row;justify-content:center;gap:8px;font-size:13.5px;padding:9px 6px}
+  #nav svg{width:18px;height:18px}
+  .dot{position:static;margin-left:2px}
+  .main{padding-top:0}
+  .navhost{display:block}
+}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.view{display:flex;flex-direction:column;gap:16px;max-width:680px;width:100%}
+.view.wide{max-width:none}
+
+/* components */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card.flat{background:transparent;border-style:dashed}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sec-h small,.muted{color:var(--muted)}
+small{font-size:12.5px}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.row>*{min-width:0}
+.stack{display:flex;flex-direction:column;gap:6px}
+.btn{border:1px solid transparent;background:var(--brand);color:var(--on-brand);padding:10px 16px;border-radius:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px}
+.btn:hover{filter:brightness(1.07)}
+.btn.sm{padding:6px 12px;min-height:34px;font-size:13.5px;border-radius:9px}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.soft{background:var(--brand-soft);color:var(--brand)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.block{width:100%}
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)} .t-warn{background:var(--warn-soft);color:var(--warn)} .t-bad{background:var(--bad-soft);color:var(--bad)} .t-info{background:var(--info-soft);color:var(--info)} .t-mute{background:var(--mute-soft);color:var(--mute)}
+label{font-weight:600;font-size:13px;display:flex;flex-direction:column;gap:5px}
+input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-height:42px}
+textarea{resize:vertical;min-height:76px}
+.form{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.form .full{grid-column:1/-1}
+@media (max-width:520px){.form{grid-template-columns:minmax(0,1fr)}}
+.tiles{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.tile{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:112px}
+.tile:hover{border-color:var(--brand)}
+.tile svg{width:26px;height:26px;color:var(--brand)}
+.tile b{font-family:var(--f-display);font-size:16px}
+.tile span{color:var(--muted);font-size:13px}
+.alert-card{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:14px}
+.alert-card div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.alert-card span{font-size:13.5px}
+.lockers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lk{border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:default;min-height:84px}
+.lk b{font-family:var(--f-display);font-size:18px}
+.lk small{color:var(--muted)}
+.lk.free{cursor:pointer;border-color:var(--ok)}
+.lk.sel{background:var(--brand-soft);border-color:var(--brand);box-shadow:0 0 0 2px var(--brand) inset}
+.lk.busy{opacity:.7}
+.steps{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.steps i{font-style:normal;display:inline-flex;align-items:center;gap:5px}
+.steps i::before{content:"";width:9px;height:9px;border-radius:50%;border:2px solid var(--line)}
+.steps i.on{color:var(--ink);font-weight:600}
+.steps i.on::before{background:var(--brand);border-color:var(--brand)}
+.qr{background:#fff;padding:10px;border-radius:12px;width:max-content;max-width:100%;border:1px solid var(--line);line-height:0}
+.qr img,.qr canvas{max-width:100%;height:auto}
+.qrbox{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.qrbox code{background:var(--bg);padding:6px 10px;border-radius:8px;border:1px solid var(--line);font-size:14px}
+.bar{height:8px;border-radius:5px;background:var(--surface2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:5px}
+.bar.hot i{background:var(--warn)}
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:620px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-family:var(--f-display);font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:12.5px}
+.kpi.attn b{color:var(--warn)}
+.slots{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:480px){.slots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.slot{border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:10px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.slot b{font-variant-numeric:tabular-nums}
+.slot small{color:var(--muted)}
+.slot[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-soft)}
+.slot:disabled{opacity:.45;cursor:not-allowed}
+.verdict{border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.verdict h3{font-size:20px}
+.list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.list li{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.list li:last-child{border:0;padding:0}
+.n-item{display:flex;gap:10px;align-items:flex-start}
+.n-item .u{width:9px;height:9px;border-radius:50%;background:var(--brand);margin-top:6px;flex:none}
+.n-item .u.r{background:transparent;border:2px solid var(--line)}
+.n-item p{font-size:13.5px;color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:18px 8px;font-size:14px}
+/* side */
+.story{counter-reset:s;display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.story li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px}
+.chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:var(--on-brand)}
+.chk.on{background:var(--ok);border-color:var(--ok)}
+.chk svg{width:13px;height:13px}
+.story b{font-size:14px}
+.story p{font-size:12.5px;color:var(--muted)}
+.log{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;max-height:300px;overflow:auto}
+.log li{font-size:12.5px;display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px}
+.log time{color:var(--muted);font-variant-numeric:tabular-nums}
+.log em{font-style:normal;font-weight:700}
+.note{font-size:12.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;z-index:60;max-width:calc(100vw - 32px);opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+@media (min-width:700px){#toast{bottom:28px}}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></div>
+        <div><b>Smart Community Hub</b><span>Parkland Residence · Block B · demo township</span></div>
+      </div>
+      <button class="btn sm ghost" id="side-btn" data-a="side">Demo guide</button>
+    </div>
+    <div class="seg" id="roles" role="group" aria-label="View the prototype as"></div>
+  </header>
+  <div class="main">
+    <div class="col">
+      <nav id="nav" aria-label="Sections"></nav>
+      <main id="app" class="view-host"></main>
+    </div>
+    <aside id="side" aria-label="Demo guide and activity"></aside>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+"use strict";
+/* ---------- constants & helpers ---------- */
+const KEY='sch-proto-v1', ME='B-12-03', THRESH=5, HOUR=3600e3, MIN=6e4;
+const LOCS=['Block B · Level 7 corridor','Block B · Lobby','Block A · Level 3','Playground','Car park P2','Swimming pool','Gym','Other'];
+const ROLES={resident:'Resident',guard:'Guard',courier:'Courier',manager:'Manager'};
+const WHO={resident:'Aisyah · Unit B-12-03',guard:'Guard post · Gate B',courier:'Delivery runner',manager:'Property office'};
+const TABS={
+  resident:[['home','Home','home'],['locker','Locker','locker'],['visitor','Visitor','visitor'],['pulse','Pulse','pulse'],['lift','Lift','lift'],['alerts','Alerts','bell']],
+  guard:[['gate','Gate','scan'],['alerts','Alerts','bell']],
+  courier:[['drop','Deliveries','truck'],['alerts','Alerts','bell']],
+  manager:[['over','Overview','chart'],['issues','Issues','pulse'],['notice','Notices','megaphone'],['alerts','Alerts','bell']]
+};
+const ICON={
+  home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  locker:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M8 12h.01M16 12h.01"/>',
+  visitor:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h3M20 17v4"/>',
+  pulse:'<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  lift:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 10l3-3 3 3M9 14l3 3 3-3"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21h4"/>',
+  scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/>',
+  chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  truck:'<path d="M2 6h11v10H2zM13 9h4l3 3v4h-7"/><circle cx="6" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+  check:'<path d="M5 12l5 5 9-10"/>',
+  megaphone:'<path d="M3 11v2a1 1 0 0 0 1 1h3l7 4V6L7 10H4a1 1 0 0 0-1 1zM18 8a5 5 0 0 1 0 8"/>'
+};
+const ic=(n)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+const $=(s,r=document)=>r.querySelector(s);
+const H=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=(n)=>String(n).padStart(2,'0');
+const fmtT=(t)=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())};
+const fmtDT=(t)=>{const d=new Date(t),k=dayKey(0),k1=dayKey(1),ds=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;return (ds===k?'Today':ds===k1?'Tomorrow':ds)+' '+fmtT(t)};
+function dayKey(o){const d=new Date(NOW());d.setDate(d.getDate()+o);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+const dayName=(k)=>k===dayKey(0)?'Today':k===dayKey(1)?'Tomorrow':k;
+const slotStart=(date,s)=>new Date(`${date}T${pad(8+s*2)}:00:00`).getTime();
+const slotLabel=(s)=>`${pad(8+s*2)}:00–${pad(10+s*2)}:00`;
+function fmtCd(ms){const a=Math.abs(ms),s=Math.floor(a/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+  const t=h?`${h}h ${m}m`:m?`${m}m ${pad(x)}s`:`${x}s`;return ms<0?'overdue by '+t:t}
+const cd=(ts,pre='')=>`<span data-cd="${ts}" data-pre="${H(pre)}"></span>`;
+const rnd=(n)=>Array.from({length:n},()=>Math.floor(Math.random()*10)).join('');
+const tok=()=>'VP-'+Math.random().toString(36).slice(2,8).toUpperCase();
+const val=(id)=>($('#'+id)?.value||'').trim();
+const LBL={CheckedIn:'Checked in',CheckedOut:'Checked out',ThresholdReached:'Threshold reached',Responded:'Management responded',InUse:'In use',Overstay:'Overstay · verify'};
+const TONE={Available:'ok',Reserved:'info',Occupied:'warn',Collected:'mute',Valid:'ok',Scheduled:'info',CheckedIn:'info',Overstay:'bad',Expired:'mute',CheckedOut:'mute',Cancelled:'mute',Submitted:'mute',Categorised:'info',ThresholdReached:'warn',Responded:'ok',Resolved:'ok',Booked:'info',InUse:'warn',Completed:'ok',Released:'bad'};
+const pill=(t,tone)=>`<span class="pill t-${tone}">${H(t)}</span>`;
+const st=(s)=>pill(LBL[s]||s,TONE[s]||'mute');
+
+/* ---------- state ---------- */
+let S, FORM={};
+const NOW=()=>Date.now()+((S&&S.skew)||0); /* demo clock: real time plus fast-forward offset */
+function seed(){
+  const now=NOW(), t1=dayKey(1);
+  return {seq:100,skew:0,metrics:{gate:[],create:[]},ui:{role:'resident',tab:'home',pick:null,qr:{},ld:0,ls:null,scan:null,dup:null,respOpen:null},
+    lockers:[{id:'A1',size:'S'},{id:'A2',size:'S'},{id:'A3',size:'M'},{id:'A4',size:'M'},{id:'B1',size:'L'},{id:'B2',size:'L'}],
+    parcels:[{id:'P1',locker:'A2',unit:'A-05-11',desc:'Online order',carrier:'J&T',status:'Occupied',code:'318204',t:now-5*HOUR,tDep:now-4*HOUR}],
+    passes:[],
+    lifts:[
+      {id:'L1',unit:'A-09-02',date:t1,slot:1,lift:1,purpose:'Moving in',status:'Booked',token:'LF-SEED01'},
+      {id:'L2',unit:'B-03-05',date:t1,slot:1,lift:2,purpose:'Renovation materials',status:'Booked',token:'LF-SEED02'},
+      {id:'L3',unit:'A-02-07',date:t1,slot:3,lift:1,purpose:'Furniture delivery',status:'Booked',token:'LF-SEED03'}],
+    issues:[
+      {id:'I1',title:'Corridor lights flickering on Level 7, Block B',loc:LOCS[0],cat:'Lighting',sev:'Medium',status:'Categorised',supporters:['B-07-01','B-07-04','B-08-02','B-12-09'],t:now-26*HOUR,hist:[['Submitted',now-26*HOUR],['Categorised',now-26*HOUR]]},
+      {id:'I2',title:'Playground swing chain is loose',loc:LOCS[3],cat:'Safety',sev:'High',status:'ThresholdReached',supporters:['A-01-03','A-02-02','A-04-08','B-05-05','B-06-06'],t:now-30*HOUR,tAt:now-4*HOUR,deadline:now-4*HOUR+48*HOUR,hist:[['Submitted',now-30*HOUR],['Categorised',now-30*HOUR],['Threshold reached',now-4*HOUR]]},
+      {id:'I3',title:'Rubbish chute smell on Level 3, Block A',loc:LOCS[2],cat:'Cleanliness',sev:'Low',status:'Categorised',supporters:['A-03-01','A-03-06'],t:now-8*HOUR,hist:[['Submitted',now-8*HOUR],['Categorised',now-8*HOUR]]},
+      {id:'I4',title:'Lift lobby air-con not cold',loc:LOCS[1],cat:'Facilities',sev:'Low',status:'Resolved',supporters:['B-01-01','B-02-02','B-03-03','B-04-04','B-05-05','B-06-06','B-07-07'],t:now-96*HOUR,tAt:now-80*HOUR,rAt:now-76*HOUR,deadline:now-32*HOUR,response:'Technician replaced the thermostat. Please report again if it recurs.',hist:[['Submitted',now-96*HOUR],['Threshold reached',now-80*HOUR],['Management responded',now-76*HOUR],['Resolved',now-72*HOUR]]}],
+    notifs:[{id:'N1',to:'resident',cat:'Maintenance',title:'Water supply interruption',body:'Block B, Saturday 02:00–05:00 for tank cleaning. Please store water in advance.',t:now-3*HOUR,read:false,kind:'notice'}],
+    log:[]};
+}
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&o.parcels&&o.issues){o.skew=o.skew||0;o.metrics=o.metrics||{};o.metrics.gate=o.metrics.gate||[];o.metrics.create=o.metrics.create||[];return o}}}catch(e){}
+  return seed();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const nid=(p)=>p+(++S.seq);
+function notify(to,title,body,kind='info'){S.notifs.unshift({id:nid('N'),to,title,body,t:NOW(),read:false,kind})}
+function logEv(role,text){S.log.unshift({t:NOW(),role,text});S.log.length=Math.min(S.log.length,60)}
+function commit(){save();render()}
+let tt;function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2600)}
+
+/* ---------- domain logic ---------- */
+function lockerStatus(id){const p=S.parcels.find(p=>p.locker===id&&(p.status==='Reserved'||p.status==='Occupied'));return p?p.status:'Available'}
+function passState(p,now=NOW()){
+  if(p.cancelled)return 'Cancelled';
+  if(p.checkedOutAt)return 'CheckedOut';
+  if(p.checkedInAt)return now>p.to?'Overstay':'CheckedIn';
+  if(now>p.to)return 'Expired';
+  if(now<p.from)return 'Scheduled';
+  return 'Valid';
+}
+const CATS=[['Lighting',/light|lamp|bulb|flicker|dark|灯/i],['Lift',/lift|elevator|电梯/i],['Water & Plumbing',/leak|pipe|drip|flood|water|tap\b|漏/i],
+  ['Cleanliness',/rubbish|trash|garbage|smell|dirty|bin\b|chute|clean|脏|臭/i],['Noise',/noise|loud|party|drill|karaoke|吵/i],['Parking',/park|vehicle|motorcycle|blocked/i],
+  ['Safety',/loose|broken|danger|unsafe|sharp|crack|fire|fall|injur|swing/i],['Facilities',/pool|gym|playground|air-?con|court|gate|door/i]];
+function classify(text){
+  const cat=(CATS.find(c=>c[1].test(text))||['General'])[0];
+  const sev=/fire|danger|unsafe|sharp|injur|flood|exposed|spark|smoke/i.test(text)?'High':['Safety','Water & Plumbing','Lighting','Lift'].includes(cat)?'Medium':'Low';
+  return {cat,sev};
+}
+const STOP=new Set(['the','and','are','not','for','with','has','have','this','that','there','near','from','been','very','our']);
+const toks=(s)=>new Set(s.toLowerCase().replace(/[^a-z0-9一-龥 ]/g,' ').split(/\s+/).filter(w=>w.length>2&&!STOP.has(w)).map(w=>w.replace(/s$/,'')));
+function findDup(text,loc){
+  const a=toks(text),c=classify(text).cat;let best=null,bs=0;
+  S.issues.filter(i=>i.status!=='Resolved').forEach(i=>{
+    const b=toks(i.title+' '+(i.text||''));const inter=[...a].filter(x=>b.has(x)).length,uni=new Set([...a,...b]).size||1;
+    const sc=inter/uni+(i.cat===c?.2:0)+(i.loc===loc?.2:0);
+    if(i.cat===c&&sc>=.45&&sc>bs){bs=sc;best=i}
+  });
+  return best;
+}
+const thr=(i)=>i.sev==='High'?3:THRESH; /* high-severity issues are fast-tracked */
+function addSupport(i,unit){
+  if(i.supporters.includes(unit))return false;
+  i.supporters.push(unit);
+  if(i.supporters.length>=thr(i)&&i.status==='Categorised'){
+    const now=NOW();i.status='ThresholdReached';i.tAt=now;i.deadline=now+48*HOUR;i.hist.push(['Threshold reached',now]);
+    notify('manager','Response needed within 48h',`“${i.title}” reached ${thr(i)} supporters.`,'warn');
+    logEv('system',`“${i.title}” reached the ${thr(i)}-resident threshold. 48h response timer started.`);
+  }
+  return true;
+}
+function liftFree(date,slot){return [1,2].filter(n=>!S.lifts.some(b=>b.date===date&&b.slot===slot&&b.lift===n&&(b.status==='Booked'||b.status==='InUse')))}
+
+/* ---------- views ---------- */
+const empty=(t)=>`<div class="empty">${t}</div>`;
+function vHome(){
+  const now=NOW(),al=[];
+  S.parcels.filter(p=>p.unit===ME&&p.status==='Occupied').forEach(p=>al.push(`<div class="alert-card t-ok"><div><b>Parcel ready in locker ${p.locker}</b><span>Pickup code <code>${p.code}</code> · ${H(p.carrier)}</span></div><button class="btn sm" data-a="go" data-v="locker">Collect</button></div>`));
+  S.passes.forEach(p=>{const s=passState(p,now);
+    if(s==='Overstay')al.push(`<div class="alert-card t-bad"><div><b>${H(p.name)} is past the pass time</b><span>Security has been asked to verify.</span></div><button class="btn sm" data-a="go" data-v="visitor">View</button></div>`);
+    else if(s==='CheckedIn')al.push(`<div class="alert-card t-info"><div><b>${H(p.name)} is inside</b><span>Pass valid until ${fmtT(p.to)}</span></div><button class="btn sm" data-a="go" data-v="visitor">View</button></div>`);
+    else if(s==='Valid'||s==='Scheduled')al.push(`<div class="alert-card t-info"><div><b>Pass for ${H(p.name)}</b><span>${fmtDT(p.from)} – ${fmtT(p.to)}</span></div><button class="btn sm" data-a="go" data-v="visitor">QR</button></div>`)});
+  S.lifts.filter(b=>b.unit===ME&&(b.status==='Booked'||b.status==='InUse')).forEach(b=>al.push(`<div class="alert-card t-info"><div><b>Service lift ${b.lift} · ${dayName(b.date)}</b><span>${slotLabel(b.slot)} · ${H(b.purpose)}</span></div><button class="btn sm" data-a="go" data-v="lift">Open</button></div>`));
+  S.issues.filter(i=>i.supporters.includes(ME)&&i.status==='Responded').forEach(i=>al.push(`<div class="alert-card t-ok"><div><b>Management responded</b><span>${H(i.title)}</span></div><button class="btn sm" data-a="go" data-v="pulse">Read</button></div>`));
+  const nts=S.notifs.filter(n=>n.to==='resident'&&n.kind==='notice').slice(0,3);
+  const mine=S.parcels.filter(p=>p.unit===ME&&p.status!=='Collected').length;
+  const act=S.passes.filter(p=>['Valid','Scheduled','CheckedIn','Overstay'].includes(passState(p,now))).length;
+  const hot=S.issues.filter(i=>i.status==='ThresholdReached').length;
+  const lf=S.lifts.filter(b=>b.unit===ME&&(b.status==='Booked'||b.status==='InUse')).length;
+  return `<section class="view">
+    <div class="stack"><h2>Good day, Aisyah</h2><p class="muted">Unit ${ME} · here is what needs you today.</p></div>
+    ${al.length?`<div class="col" style="gap:10px">${al.join('')}</div>`:`<div class="card flat">${empty('Nothing needs your attention right now.')}</div>`}
+    <div class="tiles">
+      <button class="tile" data-a="go" data-v="locker">${ic('locker')}<b>Smart Locker</b><span>${mine?mine+' active parcel'+(mine>1?'s':''):'Reserve a locker for deliveries'}</span></button>
+      <button class="tile" data-a="go" data-v="visitor">${ic('visitor')}<b>Visitor Pass</b><span>${act?act+' pass'+(act>1?'es':'')+' active':'Invite a guest with a time-limited QR'}</span></button>
+      <button class="tile" data-a="go" data-v="pulse">${ic('pulse')}<b>Community Pulse</b><span>${hot?hot+' issue'+(hot>1?'s':'')+' waiting on management':'Report and back community issues'}</span></button>
+      <button class="tile" data-a="go" data-v="lift">${ic('lift')}<b>Lift Booking</b><span>${lf?lf+' booking'+(lf>1?'s':''):'Book the service lift for moving'}</span></button>
+    </div>
+    ${nts.length?`<div class="card"><div class="row"><h3>Community notices</h3><small>from management</small></div><ul class="list">${nts.map(n=>`<li style="display:block"><div class="row"><b>${H(n.title)}</b>${pill(n.cat||'General',NT[n.cat||'General']||'mute')}</div><p class="muted">${H(n.body)}</p><small class="muted">${fmtDT(n.t)}</small></li>`).join('')}</ul></div>`:''}
+  </section>`;
+}
+function parcelCard(p){
+  const on=(k)=>({Reserved:1,Occupied:2,Collected:3}[p.status]>=k?'on':'');
+  let body='';
+  if(p.status==='Reserved')body=`<small class="muted">Waiting for the courier to confirm the deposit. You will get a pickup code.</small>`;
+  if(p.status==='Occupied')body=`<div class="qrbox"><div><small class="muted">Pickup code</small><br><code style="font-size:22px">${p.code}</code></div></div>
+    <div class="row" style="flex-wrap:nowrap"><input id="code-${p.id}" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit code" aria-label="Pickup code"><button class="btn" data-a="collect" data-id="${p.id}">Unlock</button></div>`;
+  if(p.status==='Collected')body=`<small class="muted">Collected ${fmtDT(p.tCol)}</small>`;
+  if(p.status==='Released')body=`<small class="muted">No courier deposit within 12 hours, so the locker was released.</small>`;
+  return `<div class="card"><div class="row"><b>Locker ${p.locker} · ${H(p.desc)}</b>${st(p.status)}</div>
+    <div class="steps"><i class="${on(1)}">Reserved</i><i class="${on(2)}">Deposited${p.tDep?' '+fmtT(p.tDep):''}</i><i class="${on(3)}">Collected</i></div>${body}</div>`;
+}
+function vLocker(){
+  const mine=S.parcels.filter(p=>p.unit===ME).sort((a,b)=>b.t-a.t), pick=S.ui.pick;
+  const grid=S.lockers.map(l=>{const s=lockerStatus(l.id),free=s==='Available';
+    return `<button class="lk ${free?'free':'busy'} ${pick===l.id?'sel':''}" ${free?`data-a="pick" data-id="${l.id}"`:'disabled'} aria-pressed="${pick===l.id}"><b>${l.id}</b><small>${{S:'Small',M:'Medium',L:'Large'}[l.size]}</small>${st(s)}</button>`}).join('');
+  return `<section class="view"><div class="stack"><h2>Smart Locker</h2><p class="muted">Reserve a locker so couriers can leave your parcel safely while you are out.</p></div>
+    <div class="card"><div class="sec-h"><h3>1. Choose a free locker</h3><small>Block B lobby</small></div><div class="lockers">${grid}</div>
+      <div class="form"><label>Carrier<select id="pc-carrier"><option>J&amp;T</option><option>Pos Laju</option><option>Shopee Xpress</option><option>GrabFood</option><option>Other</option></select></label>
+      <label>What are you expecting?<input id="pc-desc" placeholder="e.g. Shopee parcel" maxlength="40"></label></div>
+      <button class="btn block" data-a="reserve" ${pick?'':'disabled'}>${pick?`Reserve locker ${pick}`:'Select a locker first'}</button></div>
+    <div class="sec-h"><h3>Your parcels</h3><small>${mine.length}</small></div>
+    ${mine.length?mine.map(parcelCard).join(''):`<div class="card flat">${empty('No parcels yet. Reserve a locker above, then switch to <b>Courier</b> to deposit it.')}</div>`}
+  </section>`;
+}
+function vDrop(){
+  const wait=S.parcels.filter(p=>p.status==='Reserved'), rec=S.parcels.filter(p=>p.status==='Occupied'||p.status==='Collected').sort((a,b)=>b.tDep-a.tDep).slice(0,4);
+  return `<section class="view"><div class="stack"><h2>Deliveries</h2><p class="muted">Lockers reserved by residents. Confirm once the parcel is inside and closed.</p></div>
+    ${wait.length?wait.map(p=>`<div class="card"><div class="row"><b>Locker ${p.locker} · Unit ${p.unit}</b>${st(p.status)}</div><p class="muted">${H(p.carrier)} · ${H(p.desc)}</p><button class="btn" data-a="deposit" data-id="${p.id}">Confirm parcel deposited</button></div>`).join(''):`<div class="card flat">${empty('No lockers are waiting for a deposit. Switch to <b>Resident</b> and reserve one.')}</div>`}
+    <div class="sec-h"><h3>Recent deposits</h3></div>
+    <div class="card"><ul class="list">${rec.map(p=>`<li><span>Locker ${p.locker} · ${p.unit}</span>${st(p.status)}</li>`).join('')||'<li class="muted">None yet</li>'}</ul></div>
+    <p class="note">Simulated: in a live system the locker door controller would confirm the closed door automatically.</p></section>`;
+}
+function passCard(p){
+  const s=passState(p), live=['Valid','Scheduled','CheckedIn','Overstay'].includes(s), showQ=S.ui.qr[p.id];
+  const mv=[(p.visits&&p.visits.length)?'Past visits '+p.visits.slice(-3).map(v=>fmtT(v.i)+'–'+fmtT(v.o)).join(', '):'',p.checkedInAt?`Entered ${fmtT(p.checkedInAt)}`:'',p.checkedOutAt?`Exited ${fmtT(p.checkedOutAt)}`:''].filter(Boolean).join(' · ');
+  return `<div class="card"><div class="row"><b>${H(p.name)}</b>${st(s)}</div>
+    <p class="muted">${fmtDT(p.from)} – ${p.multi?fmtDT(p.to):fmtT(p.to)} · ${H(p.purpose)}${p.multi?' · Multi-entry':''}${p.plate?' · '+H(p.plate):''}</p>
+    ${s==='Valid'?`<small>${cd(p.to,'Expires in ')}</small>`:''}
+    ${s==='Overstay'?`<div class="verdict t-bad"><b>Guest is still inside after ${fmtT(p.to)}</b><small>Security has been notified and will verify with you.</small></div>`:''}
+    ${mv?`<small class="muted">${mv}</small>`:''}
+    ${live&&showQ?`<div class="qrbox"><div class="qr" data-qr="SCH|PASS|${p.token}"></div><div class="stack"><code>${p.token}</code><small class="muted">Guard scans this at the gate.</small></div></div>`:''}
+    ${live?`<div class="row" style="justify-content:flex-start"><button class="btn sm soft" data-a="qr" data-id="${p.id}">${showQ?'Hide QR':'Show QR'}</button>${s==='Valid'||s==='Scheduled'?`<button class="btn sm ghost" data-a="cancel-pass" data-id="${p.id}">Cancel pass</button>`:''}</div>`:''}</div>`;
+}
+function vVisitor(){
+  const list=[...S.passes].sort((a,b)=>b.t-a.t);
+  return `<section class="view"><div class="stack"><h2>Visitor Pass</h2><p class="muted">Invite a guest for a set time. You control when the pass works.</p></div>
+    <div class="card"><h3>New pass</h3><div class="form">
+      <label>Guest name<input id="vp-name" placeholder="e.g. Aunt Salmah" maxlength="40"></label>
+      <label>Vehicle plate (optional)<input id="vp-plate" placeholder="e.g. WXY 1234" maxlength="12"></label>
+      <label>Purpose<select id="vp-purpose"><option>Family visit</option><option>Friend visit</option><option>Service / repair</option><option>Event guest</option></select></label>
+      <label>Valid for<select id="vp-win"><option value="now2">Next 2 hours</option><option value="now1m">Next 1 minute (to demo expiry)</option><option value="tom">Tomorrow 10:00–14:00</option><option value="wk">7 days, multiple entries (e.g. helper)</option></select></label>
+      <button class="btn full" data-a="mkpass">Create pass</button></div></div>
+    <div class="sec-h"><h3>Your passes</h3><small>${list.length}</small></div>
+    ${list.length?list.map(passCard).join(''):`<div class="card flat">${empty('No passes yet. Create one, then switch to <b>Guard</b> to scan it.')}</div>`}
+    <p class="note">The QR only carries a reference token. In a live system the server checks the token, owner and time window; here that check is simulated. Guards only see passes that are still active.</p></section>`;
+}
+function verdict(p){
+  const s=passState(p);
+  if(s==='Valid')return {ok:1,tone:'ok',h:'Valid · allow entry',d:`Window ${fmtT(p.from)}–${p.multi?fmtDT(p.to)+' · multi-entry':fmtT(p.to)} · host Unit ${ME}`};
+  if(s==='CheckedIn')return {ok:0,tone:'info',h:'Already inside',d:'Visitor entered at '+fmtT(p.checkedInAt),out:1};
+  if(s==='Overstay')return {ok:0,tone:'bad',h:'Overstay · verify with host',d:`Pass ended ${fmtT(p.to)}; entered ${fmtT(p.checkedInAt)}`,out:1};
+  if(s==='Scheduled')return {ok:0,tone:'warn',h:'Not valid yet',d:'Starts '+fmtDT(p.from)};
+  if(s==='Expired')return {ok:0,tone:'bad',h:'Expired',d:'Pass ended '+fmtT(p.to)};
+  if(s==='CheckedOut')return {ok:0,tone:'mute',h:'Already used',d:'Visitor left at '+fmtT(p.checkedOutAt)};
+  return {ok:0,tone:'mute',h:'Cancelled by host',d:'Do not admit'};
+}
+function vGate(){
+  const sc=S.ui.scan;let res='';
+  if(sc){const p=S.passes.find(x=>x.token===sc);
+    if(!p)res=`<div class="verdict t-bad"><h3>Not recognised</h3><small>Token ${H(sc)} does not match any pass.</small><button class="btn sm ghost" data-a="gate-clear">Clear</button></div>`;
+    else{const v=verdict(p);res=`<div class="verdict t-${v.tone}"><h3>${v.h}</h3><b>${H(p.name)}${p.plate?' · '+H(p.plate):''}</b><small>${v.d}</small>
+      <div class="row" style="justify-content:flex-start">${v.ok?`<button class="btn" data-a="gate-in" data-id="${p.id}">Check in</button>`:''}${v.out?`<button class="btn" data-a="gate-out" data-id="${p.id}">Check out</button>`:''}
+      ${!v.ok&&!v.out?`<button class="btn danger" data-a="gate-deny" data-id="${p.id}">Deny entry</button>`:''}<button class="btn ghost" data-a="gate-clear">Clear</button></div></div>`}}
+  const pres=S.passes.filter(p=>!['CheckedOut','Cancelled'].includes(passState(p)));
+  const inside=S.passes.filter(p=>['CheckedIn','Overstay'].includes(passState(p)));
+  const lifts=S.lifts.filter(b=>b.date===dayKey(0)&&(b.status==='Booked'||b.status==='InUse'));
+  return `<section class="view"><div class="stack"><h2>Gate</h2><p class="muted">Verify visitor passes and service-lift bookings.</p></div>
+    <div class="card"><h3>Scan visitor pass</h3>
+      <div class="row" style="flex-wrap:nowrap"><input id="gate-token" placeholder="Token e.g. VP-AB12CD" autocapitalize="characters"><button class="btn" data-a="gate-manual">Verify</button></div>
+      ${pres.length?`<small class="muted">Simulated camera: tap Scan to read a resident’s QR.</small><ul class="list">${pres.map(p=>`<li><span>${H(p.name)} <small class="muted">· ${st(passState(p))}</small></span><button class="btn sm soft" data-a="gate-scan" data-id="${p.token}">Scan QR</button></li>`).join('')}</ul>`:`<small class="muted">No passes exist yet. Switch to <b>Resident</b> and create one.</small>`}
+      ${res}</div>
+    <div class="card"><div class="sec-h"><h3>Inside now</h3><small>${inside.length}</small></div>
+      ${inside.length?`<ul class="list">${inside.map(p=>`<li><span>${H(p.name)} <small class="muted">· since ${fmtT(p.checkedInAt)} · until ${fmtT(p.to)}</small></span>${st(passState(p))}</li>`).join('')}</ul>`:empty('Nobody is checked in.')}</div>
+    <div class="card"><div class="sec-h"><h3>Service lift today</h3><small>${dayName(dayKey(0))}</small></div>
+      ${lifts.length?`<ul class="list">${lifts.map(b=>`<li><span>Lift ${b.lift} · ${slotLabel(b.slot)}<br><small class="muted">Unit ${b.unit} · ${H(b.purpose)}</small></span>${b.status==='Booked'?`<button class="btn sm soft" data-a="lift-scan" data-id="${b.id}">Scan QR</button>`:`<button class="btn sm" data-a="lift-done" data-id="${b.id}">Mark completed</button>`}</li>`).join('')}</ul>`:empty('No lift bookings today. Book one as a resident.')}
+      <small class="muted">Demo allows scanning outside the booked window.</small></div></section>`;
+}
+function issueCard(i,mgr){
+  const THRESH=thr(i), fast=i.sev==='High';
+  const n=i.supporters.length, me=i.supporters.includes(ME), pct=Math.min(100,n/THRESH*100);
+  const resident=!mgr;
+  let extra='';
+  if(i.status==='ThresholdReached')extra=`<div class="alert-card t-warn"><div><b>Management must respond</b><span>${cd(i.deadline,'Time left: ')}</span></div></div>`;
+  if(i.response)extra+=`<div class="verdict t-ok"><small><b>Management response</b></small><p>${H(i.response)}</p></div>`;
+  let act='';
+  if(resident&&!['Resolved','Submitted'].includes(i.status))act=`<div class="row" style="justify-content:flex-start"><button class="btn sm ${me?'ghost':''}" data-a="support" data-id="${i.id}" ${me?'disabled':''}>${me?'You support this':'Support this issue'}</button>${!me&&n<THRESH?`<button class="btn sm ghost" data-a="demo-support" data-id="${i.id}" title="Demo helper">Demo: add neighbours</button>`:''}</div>`;
+  if(mgr&&i.status==='ThresholdReached')act=`<label>Reply to residents<textarea id="resp-${i.id}" placeholder="What will be done and by when?"></textarea></label><div class="row" style="justify-content:flex-start"><button class="btn" data-a="respond" data-id="${i.id}">Post response</button></div>`;
+  if(mgr&&i.status==='Categorised')act=`<small class="muted">Waiting for ${THRESH-n} more supporter${THRESH-n>1?'s':''} before the response timer starts.</small>`;
+  if(mgr&&i.status==='Responded')act=`<button class="btn sm" data-a="resolve" data-id="${i.id}">Mark resolved</button>`;
+  return `<div class="card"><div class="row"><span>${pill(i.cat,'info')} ${i.sev==='High'?pill('High severity','bad'):''}</span>${st(i.status)}</div>
+    <b>${H(i.title)}</b><small class="muted">${H(i.loc)} · ${fmtDT(i.t)}</small>
+    <div class="stack"><div class="bar ${n>=THRESH?'hot':''}"><i style="width:${pct}%"></i></div><small class="muted">${n} of ${THRESH} residents support${i.status==='Submitted'?' · analysing…':''}${fast&&i.status!=='Resolved'?' · fast-track: high severity':''}</small></div>
+    ${extra}${act}
+    <small class="muted">${i.hist.map(h=>h[0]+' '+fmtT(h[1])).join(' → ')}</small></div>`;
+}
+function vPulse(){
+  const d=S.ui.dup, list=[...S.issues].sort((a,b)=>(a.status==='Resolved')-(b.status==='Resolved')||b.supporters.length-a.supporters.length);
+  let dup='';
+  if(d){const i=S.issues.find(x=>x.id===d.id);dup=`<div class="verdict t-warn"><b>Similar report found</b><p>“${H(i.title)}” already has ${i.supporters.length} supporter${i.supporters.length>1?'s':''}. Backing it speeds up a response.</p>
+    <div class="row" style="justify-content:flex-start"><button class="btn" data-a="merge">Support existing report</button><button class="btn ghost" data-a="force">Submit as new</button></div></div>`}
+  return `<section class="view"><div class="stack"><h2>Community Pulse</h2><p class="muted">When ${THRESH} residents back the same issue, management has 48 hours to respond. High-severity safety issues need only 3.</p></div>
+    <div class="card"><h3>Report a problem</h3><div class="form">
+      <label class="full">What is wrong?<textarea id="is-text" placeholder="e.g. Corridor lights are not working on Level 7 Block B"></textarea></label>
+      <label class="full">Where?<select id="is-loc">${LOCS.map(l=>`<option>${l}</option>`).join('')}</select></label></div>
+      ${dup}${dup?'':'<button class="btn block" data-a="submit-issue">Submit report</button>'}
+      <small class="muted">Category and duplicates are detected with simple rules in this demo. A language model can replace the rules later.</small></div>
+    <div class="sec-h"><h3>Trending in your community</h3><small>${list.length}</small></div>
+    ${list.map(i=>issueCard(i,false)).join('')}</section>`;
+}
+function vLift(){
+  const dk=dayKey(S.ui.ld), now=NOW(), mine=S.lifts.filter(b=>b.unit===ME).sort((a,b)=>b.date.localeCompare(a.date)||b.slot-a.slot);
+  const slots=[0,1,2,3,4,5].map(s=>{const free=liftFree(dk,s).length,start=slotStart(dk,s),gone=now>start+15*MIN;
+    return `<button class="slot" data-a="slot" data-id="${s}" aria-pressed="${S.ui.ls===s}" ${gone||!free?'disabled':''}><b>${slotLabel(s)}</b><small>${gone?'Past':free?free+' of 2 lifts free':'Full'}</small></button>`}).join('');
+  return `<section class="view"><div class="stack"><h2>Lift Booking</h2><p class="muted">Reserve a service lift for moving or deliveries. Unused slots are released 15 minutes after they start.</p></div>
+    <div class="card"><div class="seg" role="group" aria-label="Day"><button data-a="day" data-id="0" aria-pressed="${S.ui.ld===0}">Today</button><button data-a="day" data-id="1" aria-pressed="${S.ui.ld===1}">Tomorrow</button></div>
+      <div class="slots">${slots}</div>
+      <label>Purpose<select id="lf-purpose"><option>Moving in / out</option><option>Furniture delivery</option><option>Renovation materials</option></select></label>
+      <button class="btn block" data-a="book-lift" ${S.ui.ls===null?'disabled':''}>${S.ui.ls===null?'Pick a time slot':`Book ${dayName(dk)} ${slotLabel(S.ui.ls)}`}</button></div>
+    <div class="sec-h"><h3>Your bookings</h3><small>${mine.length}</small></div>
+    ${mine.length?mine.map(b=>{const live=b.status==='Booked';return `<div class="card"><div class="row"><b>Lift ${b.lift} · ${dayName(b.date)} ${slotLabel(b.slot)}</b>${st(b.status)}</div><p class="muted">${H(b.purpose)}</p>
+      ${live?`<div class="qrbox"><div class="qr" data-qr="SCH|LIFT|${b.token}"></div><div class="stack"><code>${b.token}</code><small class="muted">Show this to the guard at the lift.</small>${cd(slotStart(b.date,b.slot)+15*MIN,'Released if unused in ')}</div></div>
+      <div class="row" style="justify-content:flex-start"><button class="btn sm ghost" data-a="lift-cancel" data-id="${b.id}">Cancel</button><button class="btn sm ghost" data-a="lift-noshow" data-id="${b.id}">Demo: simulate no-show</button></div>`:''}
+      ${b.status==='Released'?`<small class="muted">Slot was released for other residents.</small>`:''}</div>`}).join(''):`<div class="card flat">${empty('No bookings yet.')}</div>`}
+    <p class="note">Simulated: lifts are assigned in software only. No lift controller is connected.</p></section>`;
+}
+function vAlerts(){
+  const role=S.ui.role, list=S.notifs.filter(n=>n.to===role||(role==='resident'&&n.to==='all'));
+  return `<section class="view"><div class="row"><div class="stack"><h2>Alerts</h2><p class="muted">${ROLES[role]} notifications</p></div><button class="btn sm ghost" data-a="read-all">Mark all read</button></div>
+    <div class="card">${list.length?list.map(n=>`<div class="n-item"><i class="u ${n.read?'r':''}"></i><div class="stack"><div class="row"><b>${H(n.title)}</b><small class="muted">${fmtDT(n.t)}</small></div><p>${H(n.body)}</p></div></div>`).join(''):empty('You are all caught up.')}</div></section>`;
+}
+function vOver(){
+  const now=NOW(), occ=S.lockers.filter(l=>lockerStatus(l.id)!=='Available').length;
+  const wait=S.issues.filter(i=>i.status==='ThresholdReached'), resp=S.issues.filter(i=>i.tAt&&i.rAt&&!['I2','I4'].includes(i.id));
+  const avg=resp.length?resp.reduce((a,i)=>a+(i.rAt-i.tAt),0)/resp.length:null;
+  const inside=S.passes.filter(p=>['CheckedIn','Overstay'].includes(passState(p)));
+  const lt=S.lifts.filter(b=>b.date===dayKey(0)&&b.status!=='Cancelled'&&b.status!=='Released').length;
+  const col=S.parcels.filter(p=>p.status==='Collected').length;
+  return `<section class="view wide"><div class="stack"><h2>Property overview</h2><p class="muted">Live from the same data residents, guards and couriers are using.</p></div>
+    <div class="kpis">
+      <div class="kpi ${wait.length?'attn':''}"><b>${wait.length}</b><span>Issues awaiting your response</span></div>
+      <div class="kpi"><b>${avg===null?'—':fmtCd(avg).replace(' ',' ')}</b><span>Avg. time to first response</span></div>
+      <div class="kpi"><b>${occ}/${S.lockers.length}</b><span>Lockers in use</span></div>
+      <div class="kpi"><b>${col}</b><span>Parcels collected</span></div>
+      <div class="kpi"><b>${inside.length}</b><span>Visitors inside now</span></div>
+      <div class="kpi"><b>${lt}</b><span>Lift bookings today</span></div></div>
+    ${metricsCard()}
+    <div class="card"><div class="sec-h"><h3>Needs a response</h3><button class="btn sm ghost" data-a="go" data-v="issues">Open issues</button></div>
+      ${wait.length?`<ul class="list">${wait.map(i=>`<li><span>${H(i.title)}<br><small class="muted">${i.supporters.length} supporters</small></span><small>${cd(i.deadline)}</small></li>`).join('')}</ul>`:empty('No issues are waiting on management.')}</div>
+    ${privacyCard()}
+    <div class="card"><h3>Locker bank</h3><div class="lockers">${S.lockers.map(l=>{const s=lockerStatus(l.id);return `<div class="lk busy" style="opacity:1"><b>${l.id}</b>${st(s)}</div>`}).join('')}</div></div>
+  </section>`;
+}
+function vIssues(){
+  const rank={ThresholdReached:0,Responded:1,Categorised:2,Submitted:3,Resolved:4};
+  const list=[...S.issues].sort((a,b)=>rank[a.status]-rank[b.status]||b.supporters.length-a.supporters.length);
+  return `<section class="view"><div class="stack"><h2>Issues</h2><p class="muted">Sorted by what needs you first.</p></div>${list.map(i=>issueCard(i,true)).join('')}</section>`;
+}
+const NT={Safety:'bad',Maintenance:'warn',Event:'info',General:'mute'};
+function vNotice(){
+  const sent=S.notifs.filter(n=>n.to==='resident'&&n.kind==='notice');
+  return `<section class="view"><div class="stack"><h2>Notices</h2><p class="muted">Publish an announcement. Residents see it on their Home page and in Alerts.</p></div>
+    <div class="card"><h3>New notice</h3><div class="form">
+      <label class="full">Title<input id="nt-title" maxlength="70" placeholder="e.g. Service lift maintenance, Block B"></label>
+      <label class="full">Message<textarea id="nt-body" placeholder="What is happening, when, and what residents should do."></textarea></label>
+      <label>Type<select id="nt-cat"><option>General</option><option>Maintenance</option><option>Safety</option><option>Event</option></select></label>
+      <label>Send to<select id="nt-aud"><option value="res">Residents</option><option value="both">Residents and guards</option></select></label>
+      <button class="btn full" data-a="notice-pub">Publish notice</button></div></div>
+    <div class="sec-h"><h3>Published</h3><small>${sent.length}</small></div>
+    ${sent.length?sent.map(n=>`<div class="card"><div class="row"><b>${H(n.title)}</b>${pill(n.cat||'General',NT[n.cat||'General']||'mute')}</div><p class="muted">${H(n.body)}</p><small class="muted">${fmtDT(n.t)}</small></div>`).join(''):`<div class="card flat">${empty('No notices yet.')}</div>`}</section>`;
+}
+function metricsCard(){
+  const avg=(a)=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null, f=(v)=>v===null?'—':fmtCd(v);
+  const mine=S.parcels.filter(p=>p.id!=='P1');
+  const dep=mine.filter(p=>p.tDep).map(p=>p.tDep-p.t), col=mine.filter(p=>p.tDep&&p.tCol).map(p=>p.tCol-p.tDep);
+  const used=S.lifts.filter(b=>b.unit===ME&&(b.status==='InUse'||b.status==='Completed')).length, rel=S.lifts.filter(b=>b.unit===ME&&b.status==='Released').length;
+  const resp=S.issues.filter(i=>i.tAt&&i.rAt&&!['I2','I4'].includes(i.id)).map(i=>i.rAt-i.tAt);
+  const rows=[['Visitor pass creation time',f(avg(S.metrics.create)),S.metrics.create.length],['Gate check time (scan to check-in)',f(avg(S.metrics.gate)),S.metrics.gate.length],
+    ['Parcel: reserved to deposited',f(avg(dep)),dep.length],['Parcel: deposited to collected',f(avg(col)),col.length],
+    ['Lift booking fulfilment',used+rel?Math.round(used/(used+rel)*100)+'%':'—',used+rel],['Management response time',f(avg(resp)),resp.length]];
+  return `<div class="card"><h3>Measured KPIs</h3><ul class="list">${rows.map(r=>`<li><span>${r[0]}<br><small class="muted">${r[2]} sample${r[2]===1?'':'s'}</small></span><b class="mono">${r[1]}</b></li>`).join('')}</ul>
+    <p class="note">Recorded from actions taken in this session. Compare with a baseline from the current manual process, collected in resident and staff interviews.</p></div>`;
+}
+function privacyCard(){
+  return `<div class="card"><h3>Privacy and access</h3><ul class="list">
+    <li><span><b>Resident</b><br><small class="muted">Own parcels, passes and bookings. Community issues show support counts only, never who supports them.</small></span></li>
+    <li><span><b>Guard</b><br><small class="muted">Active visitor passes (name, plate, time window) and today’s lift bookings. No parcels or issues.</small></span></li>
+    <li><span><b>Courier</b><br><small class="muted">Locker, unit and carrier for pending deposits. Never sees pickup codes.</small></span></li>
+    <li><span><b>Manager</b><br><small class="muted">Aggregated counts and issue threads. No resident names, no visitor details.</small></span></li></ul>
+    <p class="note">Design policy, not enforced in this demo: visitor details are deleted 30 days after a pass ends, and pickup codes stop working once a parcel is collected.</p></div>`;
+}
+const VIEWS={notice:vNotice,home:vHome,locker:vLocker,visitor:vVisitor,pulse:vPulse,lift:vLift,alerts:vAlerts,gate:vGate,drop:vDrop,over:vOver,issues:vIssues};
+
+/* ---------- side panel & chrome ---------- */
+function side(){
+  const steps=[
+    ['Parcel handover','Resident reserves → Courier deposits → Resident collects with the code',S.parcels.some(p=>p.unit===ME&&p.status==='Collected'),'resident','locker'],
+    ['Visitor pass','Resident creates a pass → Guard scans and checks the guest in',S.passes.some(p=>p.firstIn||p.checkedInAt),'resident','visitor'],
+    ['Lift booking','Resident books a slot → Guard scans at the lift',S.lifts.some(b=>b.unit===ME&&['InUse','Completed'].includes(b.status)),'resident','lift'],
+    ['Announcement','Manager publishes a notice → Resident sees it on Home',S.notifs.some(n=>n.by==='manager'),'manager','notice'],
+    ['Community Pulse','Resident backs an issue → threshold hit → Manager responds',S.issues.some(i=>i.supporters.includes(ME)&&['Responded','Resolved'].includes(i.status)),'resident','pulse']];
+  const nm={resident:'Resident',guard:'Guard',courier:'Courier',manager:'Manager',system:'System'};
+  return `<div class="col"><div class="card"><div class="row"><h3>Demo guide</h3><button class="btn sm ghost side-close" data-a="side">Close</button></div>
+    <p class="muted">Walk the judges through one resident’s day. Use the role buttons at the top to switch viewpoint.</p>
+    <ol class="story">${steps.map(s=>`<li><span class="chk ${s[2]?'on':''}">${s[2]?ic('check'):''}</span><div class="stack"><b>${s[0]}</b><p>${s[1]}</p><div><button class="btn sm soft" data-a="jump" data-role="${s[3]}" data-v="${s[4]}">Start here</button></div></div></li>`).join('')}</ol></div>
+    <div class="card"><h3>Demo clock</h3><p class="muted">Skip ahead so timers fire: pass expiry, lift 15-minute release, 48h response deadline, parcel reminders.</p>
+      <div class="row" style="justify-content:flex-start"><button class="btn sm soft" data-a="ff" data-id="15">+15 min</button><button class="btn sm soft" data-a="ff" data-id="60">+1 hour</button><button class="btn sm soft" data-a="ff" data-id="1440">+24 hours</button></div>
+      <small class="muted">${S.skew>0?'Clock is '+fmtCd(S.skew)+' ahead. Reset demo data to return to real time.':'Running in real time.'}</small></div>
+    <div class="card"><h3>Live activity</h3><ul class="log">${S.log.length?S.log.slice(0,25).map(e=>`<li><time>${fmtT(e.t)}</time><span><em>${nm[e.role]||e.role}</em> ${H(e.text)}</span></li>`).join(''):'<li class="muted">Actions you take appear here.</li>'}</ul></div>
+    <p class="note">Prototype only. QR checks, lockers and lifts are simulated in the browser. No gate, locker or lift hardware is connected.</p>
+    <button class="btn ghost" data-a="reset">Reset demo data</button></div>`;
+}
+function render(){
+  const ae=document.activeElement, aid=ae&&ae.id, selS=ae&&ae.selectionStart, selE=ae&&ae.selectionEnd;
+  const role=S.ui.role, tabs=TABS[role]; if(!tabs.some(t=>t[0]===S.ui.tab))S.ui.tab=tabs[0][0];
+  $('#roles').innerHTML=Object.keys(ROLES).map(r=>`<button data-a="role" data-id="${r}" aria-pressed="${r===role}">${ROLES[r]}</button>`).join('')+'';
+  const unread=S.notifs.filter(n=>n.to===role&&!n.read).length;
+  $('#nav').innerHTML=tabs.length>1?tabs.map(t=>`<button data-a="go" data-v="${t[0]}" ${S.ui.tab===t[0]?'aria-current="page"':''}>${ic(t[2])}<span>${t[1]}</span>${t[0]==='alerts'&&unread?`<span class="dot">${unread}</span>`:''}</button>`).join(''):'';
+  $('#app').innerHTML=VIEWS[S.ui.tab]();
+  const sd=$('#side'); sd.innerHTML=side();
+  Object.keys(FORM).forEach(id=>{const el=$('#'+id);if(el)el.value=FORM[id]});
+  if(aid){const el=$('#'+aid);if(el){el.focus();try{if(selS!=null)el.setSelectionRange(selS,selE)}catch(e){}}}
+  paintQR(); updCd();
+}
+function paintQR(){
+  document.querySelectorAll('[data-qr]').forEach(el=>{el.innerHTML='';
+    try{new QRCode(el,{text:el.dataset.qr,width:132,height:132,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M})}
+    catch(e){el.style.lineHeight='1.3';el.innerHTML='<code>'+H(el.dataset.qr)+'</code>'}});
+}
+function updCd(){const n=NOW();document.querySelectorAll('[data-cd]').forEach(el=>{const ms=+el.dataset.cd-n;el.textContent=(ms<0?'':el.dataset.pre)+fmtCd(ms)})}
+
+/* ---------- actions ---------- */
+const A={
+  role(id){S.ui.role=id;S.ui.tab=TABS[id][0][0];S.ui.scan=null;commit();scrollTo(0,0)},
+  go(_,el){S.ui.tab=el.dataset.v;commit();scrollTo(0,0)},
+  jump(_,el){S.ui.role=el.dataset.role;S.ui.tab=el.dataset.v;$('#side').classList.remove('open');commit();scrollTo(0,0)},
+  side(){$('#side').classList.toggle('open')},
+  reset(){if(!confirmReset){confirmReset=1;toast('Tap Reset again to clear all demo data');setTimeout(()=>confirmReset=0,3500);return}
+    confirmReset=0;S=seed();FORM={};commit();toast('Demo data reset')},
+  pick(id){S.ui.pick=id;commit()},
+  'notice-pub'(){const t=val('nt-title'),b=val('nt-body'),c=val('nt-cat');if(t.length<3||b.length<5){toast('Add a title and a short message');return}
+    notify('resident',t,b,'notice');S.notifs[0].cat=c;S.notifs[0].by='manager';if(val('nt-aud')==='both')notify('guard',t,b,'notice');
+    logEv('manager',`published notice “${t}”.`);['nt-title','nt-body'].forEach(k=>delete FORM[k]);commit();toast('Notice published to residents')},
+  ff(id){const m=+id;S.skew=(S.skew||0)+m*MIN;logEv('system',`demo clock moved forward ${m===15?'15 minutes':m===60?'1 hour':'24 hours'}.`);tick();commit();toast('Clock moved forward')},
+  reserve(){const l=S.ui.pick;if(!l)return;const desc=val('pc-desc')||'Parcel',carrier=val('pc-carrier');
+    S.parcels.push({id:nid('P'),locker:l,unit:ME,desc,carrier,status:'Reserved',t:NOW()});
+    notify('courier',`Locker ${l} reserved`,`Unit ${ME} expects a ${carrier} delivery.`);
+    logEv('resident',`reserved locker ${l} for ${desc}.`);delete FORM['pc-desc'];S.ui.pick=null;commit();toast(`Locker ${l} reserved`)},
+  deposit(id){const p=S.parcels.find(x=>x.id===id);p.status='Occupied';p.code=rnd(6);p.tDep=NOW();
+    if(p.unit===ME)notify('resident',`Parcel ready in locker ${p.locker}`,`Pickup code ${p.code}.`,'ok');
+    logEv('courier',`deposited parcel in locker ${p.locker}. Resident notified.`);commit();toast('Deposit confirmed. Resident notified.')},
+  collect(id){const p=S.parcels.find(x=>x.id===id),c=val('code-'+id);
+    if(c!==p.code){toast('Wrong code. Check the 6 digits and try again.');return}
+    p.status='Collected';p.tCol=NOW();logEv('resident',`collected parcel from locker ${p.locker}.`);delete FORM['code-'+id];commit();toast(`Locker ${p.locker} unlocked (simulated)`)},
+  mkpass(){const name=val('vp-name');if(!name){toast('Enter the guest’s name');return}
+    const w=val('vp-win'),now=NOW();let from=now,to=now+2*HOUR;
+    if(w==='now1m')to=now+MIN; if(w==='wk')to=now+7*24*HOUR; if(w==='tom'){from=new Date(dayKey(1)+'T10:00:00').getTime();to=new Date(dayKey(1)+'T14:00:00').getTime()}
+    const p={id:nid('V'),token:tok(),multi:w==='wk',name,plate:val('vp-plate').toUpperCase(),purpose:val('vp-purpose'),from,to,t:now};p.lastSt=passState(p);S.passes.push(p);S.ui.qr[p.id]=true;if(S.ui.vpStart){S.metrics.create.push(NOW()-S.ui.vpStart);S.ui.vpStart=null}
+    logEv('resident',`created a visitor pass for ${name} (${fmtT(from)}–${fmtT(to)}).`);['vp-name','vp-plate'].forEach(k=>delete FORM[k]);commit();toast('Pass created')},
+  qr(id){S.ui.qr[id]=!S.ui.qr[id];commit()},
+  'cancel-pass'(id){const p=S.passes.find(x=>x.id===id);p.cancelled=true;p.lastSt='Cancelled';logEv('resident',`cancelled the pass for ${p.name}.`);commit()},
+  'gate-scan'(tokn){S.ui.scan=tokn;S.ui.scanAt=NOW();commit()},
+  'gate-manual'(){const t=val('gate-token').toUpperCase();if(!t){toast('Type a token first');return}S.ui.scan=t;S.ui.scanAt=NOW();delete FORM['gate-token'];commit()},
+  'gate-clear'(){S.ui.scan=null;commit()},
+  'gate-in'(id){const p=S.passes.find(x=>x.id===id);p.checkedInAt=NOW();p.firstIn=p.firstIn||p.checkedInAt;if(S.ui.scanAt){S.metrics.gate.push(NOW()-S.ui.scanAt);S.ui.scanAt=null}p.lastSt=passState(p);notify('resident',`${p.name} has arrived`,`Checked in at the gate at ${fmtT(p.checkedInAt)}.`,'info');
+    logEv('guard',`verified pass ${p.token} and checked ${p.name} in.`);S.ui.scan=null;commit();toast('Checked in. Host notified.')},
+  'gate-out'(id){const p=S.passes.find(x=>x.id===id);const outAt=NOW();if(p.multi){(p.visits=p.visits||[]).push({i:p.checkedInAt,o:outAt});p.checkedInAt=null}else p.checkedOutAt=outAt;p.lastSt=passState(p);notify('resident',`${p.name} has left`,`Checked out at ${fmtT(outAt)}.`,'info');
+    logEv('guard',`checked ${p.name} out.`);S.ui.scan=null;commit();toast('Checked out')},
+  'gate-deny'(id){const p=S.passes.find(x=>x.id===id);logEv('guard',`denied entry for pass ${p.token} (${verdict(p).h.toLowerCase()}).`);notify('resident',`Entry denied for ${p.name}`,verdict(p).h+'.','warn');S.ui.scan=null;commit();toast('Entry denied and logged')},
+  'submit-issue'(){const text=val('is-text'),loc=val('is-loc');if(text.length<8){toast('Describe the problem in a few words');return}
+    const d=findDup(text,loc);if(d){S.ui.dup={id:d.id,text,loc};commit();return}newIssue(text,loc)},
+  force(){const d=S.ui.dup;S.ui.dup=null;newIssue(d.text,d.loc)},
+  merge(){const d=S.ui.dup,i=S.issues.find(x=>x.id===d.id);S.ui.dup=null;delete FORM['is-text'];
+    addSupport(i,ME);logEv('resident',`backed existing report “${i.title}” instead of filing a duplicate.`);commit();toast('Merged into the existing report')},
+  support(id){const i=S.issues.find(x=>x.id===id);if(addSupport(i,ME))logEv('resident',`supports “${i.title}” (${i.supporters.length}/${THRESH}).`);commit()},
+  'demo-support'(id){const i=S.issues.find(x=>x.id===id);let k=0;while(i.supporters.length<thr(i)-1&&k<9){addSupport(i,'A-0'+(++k)+'-1'+k)}logEv('system',`demo: neighbours added to “${i.title}”.`);commit();toast('Neighbours added. Now tap Support.')},
+  respond(id){const i=S.issues.find(x=>x.id===id),t=val('resp-'+id);if(t.length<5){toast('Write a short reply for residents');return}
+    i.status='Responded';i.response=t;i.rAt=NOW();i.hist.push(['Management responded',i.rAt]);
+    if(i.supporters.includes(ME))notify('resident','Management responded',`“${i.title}”: ${t}`,'ok');
+    logEv('manager',`responded to “${i.title}”.`);delete FORM['resp-'+id];commit();toast('Response posted')},
+  resolve(id){const i=S.issues.find(x=>x.id===id);i.status='Resolved';i.hist.push(['Resolved',NOW()]);if(i.supporters.includes(ME))notify('resident','Issue resolved',i.title,'ok');logEv('manager',`marked “${i.title}” resolved.`);commit()},
+  day(id){S.ui.ld=+id;S.ui.ls=null;commit()},
+  slot(id){S.ui.ls=+id;commit()},
+  'book-lift'(){const dk=dayKey(S.ui.ld),s=S.ui.ls,free=liftFree(dk,s);if(!free.length){toast('That slot was just taken');return}
+    const b={id:nid('L'),unit:ME,date:dk,slot:s,lift:free[0],purpose:val('lf-purpose'),status:'Booked',token:'LF-'+Math.random().toString(36).slice(2,8).toUpperCase()};
+    S.lifts.push(b);S.ui.ls=null;logEv('resident',`booked service lift ${b.lift}, ${dayName(dk)} ${slotLabel(s)}.`);notify('guard',`Lift ${b.lift} booked`,`Unit ${ME}, ${dayName(dk)} ${slotLabel(s)}.`);commit();toast('Lift booked. Show the QR at the lift.')},
+  'lift-cancel'(id){const b=S.lifts.find(x=>x.id===id);b.status='Cancelled';logEv('resident',`cancelled lift booking ${slotLabel(b.slot)}.`);commit()},
+  'lift-noshow'(id){const b=S.lifts.find(x=>x.id===id);b.status='Released';notify('resident','Lift slot released',`Not used within 15 minutes, so ${slotLabel(b.slot)} was released.`,'warn');logEv('system',`lift slot ${slotLabel(b.slot)} released after no-show.`);commit()},
+  'lift-scan'(id){const b=S.lifts.find(x=>x.id===id);b.status='InUse';notify('resident','Lift booking confirmed',`Scanned at lift ${b.lift}.`,'ok');logEv('guard',`scanned lift ${b.lift} booking for Unit ${b.unit}.`);commit();toast('Booking verified. Lift in use.')},
+  'lift-done'(id){const b=S.lifts.find(x=>x.id===id);b.status='Completed';logEv('guard',`lift ${b.lift} booking completed.`);commit()},
+  'read-all'(){S.notifs.filter(n=>n.to===S.ui.role).forEach(n=>n.read=true);commit()}
+};
+let confirmReset=0;
+function newIssue(text,loc){
+  const first=text.split(/[.\n]/)[0].trim(),title=(first[0].toUpperCase()+first.slice(1)).slice(0,90);
+  const i={id:nid('I'),title,text,loc,cat:'…',sev:'…',status:'Submitted',supporters:[ME],t:NOW(),hist:[['Submitted',NOW()]]};
+  S.issues.push(i);delete FORM['is-text'];logEv('resident',`submitted “${title}”.`);commit();toast('Report submitted. Analysing…');
+  setTimeout(()=>finish(i),900);
+}
+function finish(i){if(i.status!=='Submitted')return;const c=classify(i.title+' '+(i.text||''));i.cat=c.cat;i.sev=c.sev;i.status='Categorised';i.hist.push(['Categorised',NOW()]);
+  logEv('system',`auto-categorised “${i.title}” as ${c.cat} (${c.sev}).`);commit();toast(`Categorised as ${c.cat}`)}
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;const f=A[b.dataset.a];if(f)f(b.dataset.id,b)});
+document.addEventListener('input',e=>{if(e.target.id)FORM[e.target.id]=e.target.value;if(e.target.id==='vp-name'&&!S.ui.vpStart)S.ui.vpStart=NOW()});
+
+/* ---------- clock: time-based transitions ---------- */
+function tick(){
+  const now=NOW();let ch=false;
+  S.passes.forEach(p=>{const s=passState(p,now);if(p.lastSt!==s){const prev=p.lastSt;p.lastSt=s;ch=true;
+    if(s==='Expired'&&prev!=='Expired'){notify('resident','Visitor pass expired',`${p.name}’s pass ended unused.`,'info');logEv('system',`pass for ${p.name} expired.`)}
+    if(s==='Overstay'){notify('resident',`${p.name} is past the pass time`,'Security will verify with you.','warn');notify('guard','Overstay: verify visitor',`${p.name} (${p.token}) is still inside after ${fmtT(p.to)}.`,'warn');logEv('system',`${p.name} overstayed. Flagged for verification.`)}}});
+  S.parcels.forEach(p=>{
+    if(p.status==='Reserved'&&now-p.t>12*HOUR){p.status='Released';ch=true;if(p.unit===ME)notify('resident',`Locker ${p.locker} reservation released`,'No courier deposit within 12 hours.','warn');logEv('system',`locker ${p.locker} reservation released (no deposit in 12h).`)}
+    if(p.status==='Occupied'&&!p.r24&&now-p.tDep>24*HOUR){p.r24=true;ch=true;if(p.unit===ME)notify('resident',`Parcel waiting in locker ${p.locker}`,`Please collect it. Pickup code ${p.code}.`,'warn');logEv('system',`reminder sent for parcel in locker ${p.locker} (24h).`)}
+    if(p.status==='Occupied'&&!p.r72&&now-p.tDep>72*HOUR){p.r72=true;ch=true;notify('manager',`Uncollected parcel, locker ${p.locker}`,`Unit ${p.unit}, waiting over 72 hours.`,'warn');logEv('system',`locker ${p.locker} parcel uncollected for 72h. Manager alerted.`)}});
+  S.lifts.forEach(b=>{if(b.status==='Booked'&&now>slotStart(b.date,b.slot)+15*MIN){b.status='Released';ch=true;if(b.unit===ME)notify('resident','Lift slot released',`${slotLabel(b.slot)} was not used within 15 minutes.`,'warn');logEv('system',`lift slot ${slotLabel(b.slot)} released (no-show).`)}});
+  S.issues.forEach(i=>{if(i.status==='ThresholdReached'&&now>i.deadline&&!i.overdue){i.overdue=true;ch=true;notify('manager','Response overdue',`“${i.title}” passed its 48h deadline.`,'warn')}});
+  if(ch){save();render()}else updCd();
+}
+
+S=load();
+S.issues.forEach(i=>{if(i.status==='Submitted')finish(i)});
+render();
+setInterval(tick,1000);
+</script>
